@@ -1,0 +1,237 @@
+RAG PROJECT: DOCUMENT LOADERS GUIDE
+
+Purpose
+
+Document loaders read content from files, websites, and other sources
+and convert it into LangChain Document objects. A Document generally
+contains: - page_content: the extracted text - metadata: source
+information such as filename, page number, or URL
+
+Typical RAG pipeline
+
+1.  Load documents
+2.  Split text into chunks
+3.  Create embeddings
+4.  Store vectors in a vector database
+5.  Retrieve relevant chunks for a user question
+6.  Send retrieved context to an LLM such as Gemini to generate an
+    answer
+
+INSTALLATION
+
+Install only the loaders you need. In your activated Python virtual
+environment:
+
+    pip install langchain-community langchain-text-splitters pypdf pymupdf python-docx beautifulsoup4 requests unstructured pandas openpyxl
+
+For modern LangChain integrations, some loaders may need a separate
+integration package. Check the loader’s current documentation if an
+import or dependency error occurs.
+
+1. PDF LOADER — PyPDFLoader
+
+Package: pypdf Use for: extracting text from PDF files.
+
+Example:
+
+    from langchain_community.document_loaders import PyPDFLoader
+
+    loader = PyPDFLoader("documents/guide.pdf")
+    documents = loader.load()
+
+    print("Pages loaded:", len(documents))
+    print(documents[0].page_content[:500])
+    print(documents[0].metadata)
+
+Notes: - Usually returns one Document per PDF page. - Scanned/image-only
+PDFs may need OCR; text extraction alone may return little or no text.
+
+2. PDF LOADER — PyMuPDFLoader
+
+Package: pymupdf Use for: PDF extraction where PyMuPDF is preferred.
+
+Example:
+
+    from langchain_community.document_loaders import PyMuPDFLoader
+
+    loader = PyMuPDFLoader("documents/guide.pdf")
+    documents = loader.load()
+
+3. TEXT FILE LOADER — TextLoader
+
+Use for: .txt files.
+
+Example:
+
+    from langchain_community.document_loaders import TextLoader
+
+    loader = TextLoader("documents/notes.txt", encoding="utf-8")
+    documents = loader.load()
+
+4. WORD DOCUMENT LOADER — Docx2txtLoader
+
+Package: python-docx and/or docx2txt, depending on setup. Use for: .docx
+files.
+
+Install if needed:
+
+    pip install docx2txt
+
+Example:
+
+    from langchain_community.document_loaders import Docx2txtLoader
+
+    loader = Docx2txtLoader("documents/report.docx")
+    documents = loader.load()
+
+5. CSV LOADER — CSVLoader
+
+Use for: row-based CSV files.
+
+Example:
+
+    from langchain_community.document_loaders import CSVLoader
+
+    loader = CSVLoader(file_path="documents/data.csv", encoding="utf-8")
+    documents = loader.load()
+
+Notes: - Commonly creates one Document per row. - Choose the correct
+encoding if text appears garbled.
+
+6. EXCEL LOADER
+
+For Excel files, you can use pandas directly and convert rows into
+Documents. Install: pandas openpyxl
+
+Example:
+
+    import pandas as pd
+    from langchain_core.documents import Document
+
+    df = pd.read_excel("documents/data.xlsx")
+    documents = [
+        Document(page_content=row.to_json(), metadata={"row": int(index)})
+        for index, row in df.iterrows()
+    ]
+
+7. WEB PAGE LOADER — WebBaseLoader
+
+Package: beautifulsoup4 and requests. Use for: loading readable text
+from a public webpage.
+
+Example:
+
+    from langchain_community.document_loaders import WebBaseLoader
+
+    loader = WebBaseLoader("https://example.com")
+    documents = loader.load()
+
+Notes: - Only load pages you are allowed to access. - Respect website
+terms, robots rules, and rate limits. - Dynamic websites may require a
+browser-based loader.
+
+8. DIRECTORY LOADER — DirectoryLoader
+
+Use for: loading multiple files from a folder.
+
+Example for text files:
+
+    from langchain_community.document_loaders import DirectoryLoader, TextLoader
+
+    loader = DirectoryLoader(
+        "documents/",
+        glob="**/*.txt",
+        loader_cls=TextLoader,
+        loader_kwargs={"encoding": "utf-8"},
+        show_progress=True,
+    )
+    documents = loader.load()
+
+For PDFs, set loader_cls=PyPDFLoader and use a matching glob such as
+“**/*.pdf”.
+
+9. JSON LOADER
+
+Use for: JSON files. The exact configuration depends on the structure of
+the JSON data. For nested or custom JSON, Python’s built-in json module
+can be used and the extracted text can be wrapped in
+langchain_core.documents.Document objects.
+
+10. UNSTRUCTURED LOADER
+
+Package: unstructured Use for: mixed document formats and more complex
+document extraction workflows.
+
+Install:
+
+    pip install unstructured
+
+Additional system dependencies may be required for particular file
+formats or OCR. Use this when simpler format-specific loaders do not
+meet your needs.
+
+RECOMMENDED STARTER SETUP FOR YOUR RAG PROJECT
+
+If you are starting with PDF documents, begin with: - PyPDFLoader for
+PDF text extraction - RecursiveCharacterTextSplitter for chunking -
+Gemini embeddings or a Sentence Transformers embedding model - ChromaDB
+for vector storage - Gemini through langchain-google-genai for answers
+
+Minimal PDF-to-chunks example
+
+    from langchain_community.document_loaders import PyPDFLoader
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    loader = PyPDFLoader("documents/guide.pdf")
+    documents = loader.load()
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=150,
+    )
+    chunks = splitter.split_documents(documents)
+
+    print(f"Loaded {len(documents)} pages")
+    print(f"Created {len(chunks)} chunks")
+    print(chunks[0].page_content[:300])
+
+TROUBLESHOOTING
+
+-   ImportError: install the package required by that loader in the
+    active .venv.
+-   File not found: use a correct path relative to the project root or
+    an absolute path.
+-   Empty PDF text: the PDF may be scanned; OCR may be needed.
+-   Garbled text: try encoding=“utf-8” for text/CSV files or the correct
+    file encoding.
+-   Huge files: load and process files in batches where possible.
+-   Missing metadata: inspect each Document’s metadata and add source
+    metadata when creating custom Documents.
+-   Dependency conflicts: use a project virtual environment and install
+    compatible versions.
+
+SECURITY AND GOOD PRACTICES
+
+-   Do not upload .env files or API keys to GitHub.
+-   Do not load untrusted files without considering their content and
+    processing risks.
+-   Keep source metadata so retrieved answers can cite
+    filenames/pages/URLs.
+-   Avoid installing every loader integration unless your project needs
+    it.
+-   Pin tested package versions before deploying a stable application.
+
+Useful imports
+
+    from langchain_community.document_loaders import (
+        PyPDFLoader,
+        TextLoader,
+        CSVLoader,
+        DirectoryLoader,
+        WebBaseLoader,
+        Docx2txtLoader,
+    )
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    from langchain_core.documents import Document
+
+End of guide.

@@ -1,0 +1,67 @@
+
+# ==========================================
+# RAG PROJECT - COMPLETE REQUIREMENTS
+# ==========================================
+
+# LangChain core and integrations
+langchain
+langchain-core
+langchain-community
+langchain-text-splitters
+langchain-classic
+
+# Google Gemini API
+langchain-google-genai
+google-genai
+
+# Hugging Face ecosystem
+transformers
+huggingface-hub
+sentence-transformers
+tokenizers
+safetensors
+accelerate
+
+# Embeddings and vector databases
+chromadb
+langchain-chroma
+faiss-cpu
+
+# Document processing
+pypdf
+pymupdf
+python-docx
+unstructured
+beautifulsoup4
+lxml
+markdown
+pandas
+openpyxl
+
+# Data science and numerical computing
+numpy
+scipy
+scikit-learn
+
+# API and application interface
+streamlit
+fastapi
+uvicorn
+requests
+httpx
+
+# Environment and configuration
+python-dotenv
+pydantic
+pydantic-settings
+pyyaml
+
+# Search, ranking and retrieval
+rank-bm25
+rapidfuzz
+
+# Utilities
+tqdm
+tenacity
+typing-extensions
+Pillow
