@@ -1,60 +1,65 @@
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
 from dotenv import load_dotenv
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_chroma import Chroma
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 load_dotenv()
 
-loader = PyPDFLoader(
-    "document_loaders/DL.pdf"
+embedding_model = GoogleGenerativeAIEmbeddings(
+    model="gemini-embedding-001"
 )
 
-docs = loader.load()
-
-if not docs or not any(doc.page_content.strip() for doc in docs):
-    raise ValueError("The document is empty or could not be loaded.")
-
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=200
+vectorstore = Chroma(
+    persist_directory="chroma-db-local",
+    embedding_function=embedding_model
 )
 
-chunks = splitter.split_documents(docs)
+retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "k": 4,
+        "fetch_k": 10,
+        "lambda_mult": 0.7
+    }
+)
 
-data = "\n\n".join(chunk.page_content for chunk in chunks)
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    temperature=0
+)
 
-template = ChatPromptTemplate.from_messages(
+prompt = ChatPromptTemplate.from_messages(
     [
-        (
-            "system",
-            "You are an AI assistant that summarizes text accurately. "
-            "Preserve important information and avoid adding facts "
-            "that are not present in the original text."
-        ),
-        (
-            "human",
-            "Summarize the following text in simple, clear language. "
-            "Use headings and bullet points where appropriate. "
-            "Include the key concepts and important details.\n\n"
-            "{data}"
-        )
+        ("system", """You are a helpful AI assistant.
+        Use the following context to answer the question.
+        If you don't know the answer, say I don't know.
+        """),
+        ("human", """Context: {context}\n\nQuestion: {question}""")
     ]
 )
 
-model = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    max_tokens=1024,
-    temperature=0.2,
-)
+print("RAG System Created")
+print("Press 0 to exit")
 
-chain = template | model
+while True:
+    query = input("Your Question: ").strip()
 
-response = chain.invoke(
-    {"data": data}
-)
+    if query == "0":
+        break
 
-print(response.content)
+    if not query:
+        continue
+
+    docs = retriever.invoke(query)
+
+    context = "\n\n".join(doc.page_content for doc in docs)
+
+    prompt_input = prompt.format_messages(
+        context=context,
+        question=query
+    )
+
+    response = llm.invoke(prompt_input)
+
+    print("\nResponse:", response.content)

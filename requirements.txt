@@ -18,6 +18,7 @@ google-genai
 transformers
 huggingface-hub
 sentence-transformers
+langchain-huggingface
 tokenizers
 safetensors
 accelerate
@@ -57,6 +58,7 @@ pydantic-settings
 pyyaml
 
 # Search, ranking and retrieval
+arxiv
 rank-bm25
 rapidfuzz
 
